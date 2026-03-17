@@ -1,5 +1,8 @@
 import {test, expect} from 'playwright/test';
 import tags from '../test-data/tags.json'
+import { request } from 'node:http';
+import fs from 'fs'
+
 
 test.beforeEach(async ({page}) => {
 
@@ -10,7 +13,10 @@ test.beforeEach(async ({page}) => {
     })
 
     await page.goto('https://conduit.bondaracademy.com/')
-    
+    await page.getByText('Sign in').click()
+    await page.getByRole('textbox', { name: "Email" }).fill(process.env.API_EMAIL ?? '')
+    await page.getByRole('textbox', { name: "Password" }).fill(process.env.API_PASSWORD ?? '')
+    await page.getByRole('button').click()
 })
 
 test('Validate the presence of Conduit icon', async ({page}) => {
@@ -32,4 +38,39 @@ test('Validate the presence of Conduit icon', async ({page}) => {
     await page.waitForTimeout(500)
     await expect(page.locator('app-article-list h1').first()).toContainText('This is a MOCK test title')
     await expect(page.locator('app-article-list p').first()).toContainText('This MOCK description is amazing. Just wow')
+})
+
+test('Delete article', async ({ page, request }) => {
+  const response = await request.post(
+    'https://conduit-api.bondaracademy.com/api/users/login',
+    {
+      data: {
+        user: {
+          email: process.env.API_EMAIL,
+          password: process.env.API_PASSWORD
+        }
+      }
+    }
+  )
+
+  const responseBody = await response.json()
+  const accessToken = responseBody.user.token
+
+  const articleResponse = await request.post('https://conduit-api.bondaracademy.com/api/articles/', {
+    data: {
+        "article":{"title":"Amazing article","description":"Wonderful news and many more","body":"Once upon a time...","tagList":["wow"]}
+    },
+    headers: {
+        Authorization: `Token ${accessToken}`
+    }
+  })
+//   expect(articleResponse.status).toEqual(201)
+
+await page.getByText('Global Feed').click()
+await page.getByText('Amazing article').click()
+await page.getByRole('button', {name: "Delete Article"}).first().click()
+await page.getByText('Global Feed').click()
+
+await expect(page.locator('app-article-list h1').first()).not.toContainText('Amazing article')
+
 })
