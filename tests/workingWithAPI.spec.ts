@@ -74,3 +74,53 @@ await page.getByText('Global Feed').click()
 await expect(page.locator('app-article-list h1').first()).not.toContainText('Amazing article')
 
 })
+
+test('Create an article', async ({ page, request }) => {
+
+  await page.getByText('New Article').click()
+  await page.getByRole('textbox', { name: "Article Title" }).fill('Playwright is awesome')
+  await page.getByRole('textbox', { name: "What's this article about?" }).fill('About the Playwright')
+  await page.getByRole('textbox', { name: "Write your article (in markdown)" }).fill('We like using Playwright for automation')
+  await page.getByRole('button', { name: "Publish Article" }).click()
+
+  await expect(page).toHaveURL('https://conduit.bondaracademy.com/articles')
+  const articleResponse = await page.waitForResponse(
+    'https://conduit.bondaracademy.com/articles'
+  )
+
+  const articleResponseBody = await articleResponse.json()
+  const slugId = articleResponseBody.article.slug
+
+  await expect(page.locator('.article-page h1')).toContainText('Playwright is awesome')
+
+  await page.getByText('Home').click()
+  await page.getByText('Global Feed').click()
+
+  await expect(page.locator('.article-preview').first()).toContainText('Playwright is awesome')
+
+  const response = await request.post(
+    '*/**/api/users/login',
+    {
+      data: {
+        user: {
+          email: process.env.API_EMAIL,
+          password: process.env.API_PASSWORD
+        }
+      }
+    }
+  )
+
+  const responseBody = await response.json()
+  const accessToken = responseBody.user.token
+
+  const deleteArticleResponse = await request.delete(
+    `*/**/api/article/${slugId}`,
+    {
+      headers: {
+        Authorization: `Token ${accessToken}`
+      }
+    }
+  )
+
+  expect(deleteArticleResponse.status()).toEqual(204)
+})
