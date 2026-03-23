@@ -13,10 +13,6 @@ test.beforeEach(async ({page}) => {
     })
 
     await page.goto('https://conduit.bondaracademy.com/')
-    await page.getByText('Sign in').click()
-    await page.getByRole('textbox', { name: "Email" }).fill(process.env.API_EMAIL ?? '')
-    await page.getByRole('textbox', { name: "Password" }).fill(process.env.API_PASSWORD ?? '')
-    await page.getByRole('button').click()
 })
 
 test('Validate the presence of Conduit icon', async ({page}) => {
@@ -83,7 +79,7 @@ test('Create an article', async ({ page, request }) => {
   await page.getByRole('textbox', { name: "Write your article (in markdown)" }).fill('We like using Playwright for automation')
   await page.getByRole('button', { name: "Publish Article" }).click()
 
-  await expect(page).toHaveURL('https://conduit.bondaracademy.com/articles')
+  await expect(page).toHaveURL('https://conduit.bondaracademy.com/article')
   const articleResponse = await page.waitForResponse(
     'https://conduit.bondaracademy.com/articles'
   )
@@ -96,7 +92,7 @@ test('Create an article', async ({ page, request }) => {
   await page.getByText('Home').click()
   await page.getByText('Global Feed').click()
 
-  await expect(page.locator('.article-preview').first()).toContainText('Playwright is awesome')
+  await expect(page.locator('.article-page').first()).toContainText('Playwright is awesome')
 
   const response = await request.post(
     '*/**/api/users/login',
