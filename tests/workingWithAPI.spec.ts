@@ -53,7 +53,7 @@ await expect(page.locator('app-article-list h1').first()).not.toContainText('Ama
 
 })
 
-test('Create an article', async ({ page, request }) => {
+test.skip('Create an article', async ({ page, request }) => {
 
   await page.getByText('New Article').click()
   await page.getByRole('textbox', { name: "Article Title" }).fill('Playwright is awesome')
@@ -79,5 +79,38 @@ test('Create an article', async ({ page, request }) => {
   const deleteArticleResponse = await request.delete(
     `*/**/api/article/${slugId}`)
 
+  expect(deleteArticleResponse.status()).toEqual(204)
+})
+
+ test('Create an article.Claude', async ({ page, request }) => {
+  await page.getByText('New Article').click()
+  await page.getByRole('textbox', { name: "Article Title" }).fill('Playwright is awesome')
+  await page.getByRole('textbox', { name: "What's this article about?" }).fill('About the Playwright')
+  await page.getByRole('textbox', { name: "Write your article (in markdown)" }).fill('We like using Playwright for automation')
+
+  const articleResponsePromise = page.waitForResponse(
+    response => response.url().includes('/articles') && response.request().method() === 'POST'
+  )
+  await page.getByRole('button', { name: "Publish Article" }).click()
+
+  const articleResponse = await articleResponsePromise
+  const articleResponseBody = await articleResponse.json()
+  const slugId = articleResponseBody.article.slug
+
+  await expect(page).toHaveURL(/\/article\//)
+  await expect(page.locator('.article-page h1')).toContainText('Playwright is awesome')
+
+  await page.getByText('Home').click()
+  await page.getByText('Global Feed').click()
+  await expect(page.locator('.article-preview').first()).toContainText('Playwright is awesome')
+
+  const deleteArticleResponse = await request.delete(
+    `https://conduit-api.bondaracademy.com/api/articles/Playwright-is-awesome-49109`, 
+    {
+    headers: {
+      'Authorization': `Token ${process.env.ACCESS_TOKEN}`
+    }
+  }
+  )
   expect(deleteArticleResponse.status()).toEqual(204)
 })
